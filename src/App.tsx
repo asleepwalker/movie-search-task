@@ -1,24 +1,44 @@
-import React from 'react';
-import logo from './logo.svg';
+import React, { useState, useCallback } from 'react';
+
+import Form from './components/Form';
+import Grid from './components/Grid';
+import Counter from './components/Counter';
+import { searchApi } from './api/search';
+import { Response, Movie } from './types';
 import './App.css';
 
 function App() {
+  const [value, setValue] = useState('');
+  const [list, setList] = useState<Movie[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(0);
+
+  const handleSearch = useCallback((value: string) => {
+    searchApi(value)
+      .then((data: Response) => {
+        setValue(value);
+        setList(data.Search);
+        setTotal(data.totalResults);
+        setPage(1);
+      })
+      .catch(() => alert('Error occured! Try again'));
+  }, []);
+
+  const handleLoadMore = useCallback(() => {
+    const nextPage = page + 1;
+    searchApi(value, nextPage)
+      .then((data: Response) => {
+        setList([...list, ...data.Search]);
+        setPage(nextPage);
+      })
+      .catch(() => alert('Error occured! Try again'));
+  }, [value, list, page]);
+
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+      <Form onSubmit={handleSearch} />
+      <Grid list={list} />
+      <Counter items={list.length} total={total} onLoadMore={handleLoadMore} />
     </div>
   );
 }
